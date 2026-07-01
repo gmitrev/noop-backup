@@ -29,14 +29,16 @@ module NoopBackup::Commands
       duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - @started
 
       if config.min_size && @bytes.to_i < config.min_size.to_i
-        s3_client.delete_object(bucket: config.bucket, key: @key)
-
         raise "backup too small: #{human_size(@bytes)} < min_size (#{human_size(config.min_size)})"
       end
 
       config.notify(success_message(duration))
     rescue => e
+      remove_partial_upload
+
       config.notify("❌ Backup failed: #{e.message}")
+
+      exit 1
     end
 
     private
@@ -81,6 +83,10 @@ module NoopBackup::Commands
     def success_message(duration)
       "✅ #{config.pg_env["PGDATABASE"]} backed up successfully — " \
         "#{human_size(@bytes)} in #{duration.round(1)}s → #{config.bucket}/#{@key}"
+    end
+
+    def remove_partial_upload
+      s3_client.delete_object(bucket: config.bucket, key: @key)
     end
   end
 end

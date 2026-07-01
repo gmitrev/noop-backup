@@ -18,7 +18,7 @@ module NoopBackup
       yield(configuration)
     end
 
-    # Attempt to boot host app. Booting it should trigger the configuration process
+    # Attempt to boot host app. Booting it should trigger the configuration process.
     def prepare!
       env_file = File.expand_path("config/environment.rb")
 
