@@ -27,6 +27,10 @@ module Noop::Backup::Commands
 
         raise "pipeline failed" unless wait_threads.all? { |t| t.value.success? }
       end
+
+      config.notify("✅ Backup completed: #{@key}")
+    rescue => e
+      config.notify("❌ Backup failed: #{e.message}")
     end
 
     # Prefer Aws::S3::TransferManager for streaming uploads if available.
@@ -37,11 +41,11 @@ module Noop::Backup::Commands
 
         manager = Aws::S3::TransferManager.new(client:)
 
-        manager.upload_stream(bucket: config.bucket, key:, part_size: 8 * 1024 * 1024, thread_count: 2) do |s3_stream|
+        manager.upload_stream(bucket: config.bucket, key: @key, part_size: 8 * 1024 * 1024, thread_count: 2) do |s3_stream|
           IO.copy_stream(stdout, s3_stream)
         end
       else
-        object = Aws::S3::Resource.new(region: config.region).bucket(config.bucket).object(key)
+        object = Aws::S3::Resource.new(region: config.region).bucket(config.bucket).object(@key)
 
         object.upload_stream(part_size: 8 * 1024 * 1024, thread_count: 2) do |s3_stream|
           IO.copy_stream(stdout, s3_stream)

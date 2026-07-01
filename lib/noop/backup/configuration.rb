@@ -13,6 +13,25 @@ module Noop::Backup
       @bucket = ENV["NBU_BUCKET"]
       @region = ENV["NBU_REGION"] || ENV["AWS_REGION"] || "auto"
       @prefix = "backups"
+      @notifiers = []
+    end
+
+    def notifier(type)
+      case type
+      when :slack
+        notifier = Noop::Backup::Notifiers::Slack.new
+
+        yield notifier
+
+        @notifiers << notifier
+      else raise "Unknown notifier: #{type}"
+      end
+    end
+
+    def notify(message)
+      @notifiers.each do |notifier|
+        notifier.notify(message)
+      end
     end
 
     def pg_env

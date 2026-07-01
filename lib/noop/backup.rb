@@ -1,6 +1,7 @@
 require_relative "backup/version"
 require_relative "backup/configuration"
 require_relative "backup/commands/backup"
+require_relative "backup/notifiers/slack"
 
 module Noop::Backup
   class Error < StandardError; end
