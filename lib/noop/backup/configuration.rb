@@ -7,13 +7,15 @@ module Noop::Backup
       :pg_port,
       :pg_user,
       :pg_password,
-      :pg_database
+      :pg_database,
+      :min_size
 
     def initialize
       @bucket = ENV["NBU_BUCKET"]
       @region = ENV["NBU_REGION"] || ENV["AWS_REGION"] || "auto"
       @prefix = "backups"
       @notifiers = [Noop::Backup::Notifiers::Stdout.new]
+      @min_size = ENV.fetch("NBU_MIN_SIZE", 1204).to_i
     end
 
     def notifier(type)

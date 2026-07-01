@@ -28,6 +28,12 @@ module Noop::Backup::Commands
 
       duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - @started
 
+      if config.min_size && @bytes.to_i < config.min_size.to_i
+        s3_client.delete_object(bucket: config.bucket, key: @key)
+
+        raise "backup too small: #{human_size(@bytes)} < min_size (#{human_size(config.min_size)})"
+      end
+
       config.notify(success_message(duration))
     rescue => e
       config.notify("❌ Backup failed: #{e.message}")
@@ -39,13 +45,15 @@ module Noop::Backup::Commands
       @config ||= Noop::Backup.configuration
     end
 
+    def s3_client
+      @_s3_client ||= Aws::S3::Client.new(region: config.region)
+    end
+
     # Prefer Aws::S3::TransferManager for streaming uploads if available.
     # Aws::S3::Resource.upload_stream is deprecated in newer versions
     def upload(stdout)
       if defined?(Aws::S3::TransferManager)
-        client = Aws::S3::Client.new(region: config.region)
-
-        manager = Aws::S3::TransferManager.new(client:)
+        manager = Aws::S3::TransferManager.new(client: s3_client)
 
         manager.upload_stream(bucket: config.bucket, key: @key, part_size: 8 * 1024 * 1024, thread_count: 2) do |s3_stream|
           @bytes = IO.copy_stream(stdout, s3_stream)
