@@ -1,7 +1,7 @@
 require "aws-sdk-s3"
 require "open3"
 
-module Noop::Backup::Commands
+module NoopBackup::Commands
   class Backup
     def self.execute
       new.execute
@@ -42,7 +42,7 @@ module Noop::Backup::Commands
     private
 
     def config
-      @config ||= Noop::Backup.configuration
+      @config ||= NoopBackup.configuration
     end
 
     def s3_client

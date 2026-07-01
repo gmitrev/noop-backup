@@ -1,4 +1,4 @@
-module Noop::Backup
+module NoopBackup
   class Configuration
     attr_accessor :bucket,
       :region,
@@ -14,14 +14,14 @@ module Noop::Backup
       @bucket = ENV["NBU_BUCKET"]
       @region = ENV["NBU_REGION"] || ENV["AWS_REGION"] || "auto"
       @prefix = "backups"
-      @notifiers = [Noop::Backup::Notifiers::Stdout.new]
+      @notifiers = [NoopBackup::Notifiers::Stdout.new]
       @min_size = ENV.fetch("NBU_MIN_SIZE", 1204).to_i
     end
 
     def notifier(type)
       case type
       when :slack
-        notifier = Noop::Backup::Notifiers::Slack.new
+        notifier = NoopBackup::Notifiers::Slack.new
 
         yield notifier
 

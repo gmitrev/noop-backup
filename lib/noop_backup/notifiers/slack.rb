@@ -2,7 +2,7 @@ require "net/http"
 require "uri"
 require "json"
 
-module Noop::Backup::Notifiers
+module NoopBackup::Notifiers
   class Slack
     attr_accessor :webhook_url
 

@@ -1,10 +1,10 @@
-require_relative "backup/version"
-require_relative "backup/configuration"
-require_relative "backup/commands/backup"
-require_relative "backup/notifiers/slack"
-require_relative "backup/notifiers/stdout"
+require_relative "noop_backup/version"
+require_relative "noop_backup/configuration"
+require_relative "noop_backup/commands/backup"
+require_relative "noop_backup/notifiers/slack"
+require_relative "noop_backup/notifiers/stdout"
 
-module Noop::Backup
+module NoopBackup
   class Error < StandardError; end
 
   class << self

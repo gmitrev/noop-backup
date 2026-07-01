@@ -1,8 +1,8 @@
-require_relative "lib/noop/backup/version"
+require_relative "lib/noop_backup/version"
 
 Gem::Specification.new do |spec|
   spec.name = "noop-backup"
-  spec.version = Noop::Backup::VERSION
+  spec.version = NoopBackup::VERSION
   spec.authors = ["Georgi Mitrev"]
   spec.email = ["gvmitrev@gmail.com"]
 
