@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.1.3] - 2026-07-02
+
 - Pass `access_key_id` and `secret_access_key` in config block
 
 ## [0.1.2] - 2026-07-02
