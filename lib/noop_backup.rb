@@ -26,3 +26,5 @@ module NoopBackup
     end
   end
 end
+
+require_relative "noop_backup/plugins/rails" if defined? Rails::Railtie

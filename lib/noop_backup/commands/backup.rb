@@ -45,7 +45,7 @@ module NoopBackup::Commands
 
       config.notify("❌ Backup failed: #{e.message}")
 
-      exit 1
+      raise
     end
 
     private
