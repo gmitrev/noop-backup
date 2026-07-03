@@ -1,16 +1,20 @@
 require "open3"
 
 module NoopBackup::Commands
-  class Tee
-    def initialize(writers) = @writers = writers
-
-    def write(chunk)
-      @writers.each { |writer| writer.write(chunk) }
-      chunk.bytesize
-    end
-  end
-
   class Backup
+    Result = Struct.new(:status, keyword_init: true) do
+    end
+
+    Sink = Struct.new(:writer, :thread, keyword_init: true) do
+      def close
+        writer.close
+      end
+
+      def join
+        thread.join
+      end
+    end
+
     def self.execute
       new.execute
     end
@@ -44,16 +48,16 @@ module NoopBackup::Commands
           reader.close
         end
 
-        [writer, thread]
+        Sink.new(writer:, thread:)
       end
 
-      sinks_fanout = NoopBackup::Tee.new(sinks.map(&:first))
+      sinks_fanout = NoopBackup::Tee.new(sinks.map(:writer))
 
       Open3.pipeline_r(*commands) do |last_stdout, wait_threads|
         @bytes = IO.copy_stream(last_stdout, sinks_fanout)
 
-        sinks.each { |writer, _| writer.close }
-        sinks.each { |_, thread| thread.join }
+        sinks.each(&:close)
+        sinks.each(&:join)
 
         raise "pipeline failed" unless wait_threads.all? { |t| t.value.success? }
       end
