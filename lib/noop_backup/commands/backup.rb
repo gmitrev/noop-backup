@@ -21,33 +21,24 @@ module NoopBackup::Commands
     end
 
     def initialize
-      now = Time.now.utc
-      @key = [
-        config.prefix,
-        config.pg_env["PGDATABASE"],
-        now.strftime("%Y"),
-        now.strftime("%m"),
-        "#{now.strftime("%d-%H-%M-%S-%L")}.dump"
-      ].compact.join("/")
       @store_results = []
     end
 
     def execute
-      raise NoopBackup::ConfigurationError, "No backup stores resistered" if config.stores.empty?
+      perform_sanity_check!
 
-      # TODO: Validate all stores. Report any errors and exit early if any validation fails
-      #
       commands = [
         [config.pg_env, "pg_dump", "--format=custom", "--no-owner"]
       ]
 
+      # Pipe pg_dump through pv if installed for a basic progress report
       commands << ["pv", "-btra"] if system("which", "pv", out: File::NULL, err: File::NULL)
 
       sinks = config.stores.map do |store|
         reader, writer = IO.pipe(binmode: true)
 
         thread = Thread.new do
-          @store_results << store.backup!(@key, reader)
+          @store_results << store.backup!(key, reader)
         ensure
           reader.close
         end
@@ -76,8 +67,34 @@ module NoopBackup::Commands
 
     private
 
+    # 1. Check if any stores are registered.
+    # 2. Make sure **all** stores have a valid configuration
+    def perform_sanity_check!
+      raise NoopBackup::ConfigurationError, "No backup stores resistered" if config.stores.empty?
+
+      config.stores.each(&:validate!)
+    end
+
     def config
-      @config ||= NoopBackup.configuration
+      @config ||= NoopBackup.config
+    end
+
+    # File name of the current backup. Example:
+    #
+    #  prefix   db_name            y    m  d  h  m  s  ms
+    # /database/db_name_production/2026/07/03-14-47-23-724.dump
+    def key
+      @key ||= begin
+        now = Time.now.utc
+
+        [
+          config.prefix,
+          config.pg_env["PGDATABASE"],
+          now.strftime("%Y"),
+          now.strftime("%m"),
+          "#{now.strftime("%d-%H-%M-%S-%L")}.dump"
+        ].compact.join("/")
+      end
     end
   end
 end
