@@ -31,6 +31,12 @@ module NoopBackup
       require env_file if File.exist?(env_file)
     end
 
+    def notify(message)
+      config.notifiers.each do |notifier|
+        notifier.notify(message)
+      end
+    end
+
     def utils
       NoopBackup::Utils
     end

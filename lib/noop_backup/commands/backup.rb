@@ -8,19 +8,18 @@ module NoopBackup::Commands
 
     def status
       return :error if error
-      return :error if store_results.blank? || store_results.none?(&:success)
+      return :error if store_results.empty? || store_results.none?(&:success)
       return :success if store_results.all?(&:success)
+
       :partial_success
     end
 
     def report
       if error
-        # TODO: do not go through configuration
-        NoopBackup.configuration.notify "❌ Fatal error: #{error.message}"
+        NoopBackup.notify "❌ Fatal error: #{error.message}"
       else
         store_results.each do |result|
-          # TODO: do not go through configuration
-          NoopBackup.configuration.notify result.message
+          NoopBackup.notify result.message
         end
       end
     end

@@ -8,7 +8,7 @@ module NoopBackup
       :pg_password,
       :pg_database
 
-    attr_reader :stores
+    attr_reader :stores, :notifiers
 
     def initialize
       @prefix = ENV.fetch("NBU_PREFIX", "database")
@@ -18,6 +18,8 @@ module NoopBackup
     end
 
     def register(store_type)
+      raise NoopBackup::RuntimeError, "`config.register` requires a block" unless block_given?
+
       store =
         case store_type.to_sym
         when :s3 then NoopBackup::Stores::S3.new
@@ -25,8 +27,6 @@ module NoopBackup
         end
 
       @stores << store
-
-      raise NoopBackup::RuntimeError, "`config.register` requires a block" unless block_given?
 
       yield store
     end
@@ -40,12 +40,6 @@ module NoopBackup
 
         @notifiers << notifier
       else raise "Unknown notifier: #{type}"
-      end
-    end
-
-    def notify(message)
-      @notifiers.each do |notifier|
-        notifier.notify(message)
       end
     end
 
