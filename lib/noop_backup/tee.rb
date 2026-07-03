@@ -1,8 +1,6 @@
 module NoopBackup
   class Tee
-    Sink = Struct.new(:writer, :thread, keyword_init: true) do
-      attr_reader :error
-
+    Sink = Struct.new(:store, :writer, :thread, keyword_init: true) do
       def write(chunk)
         return if @error
 
@@ -15,10 +13,6 @@ module NoopBackup
 
       def close
         writer.close
-      end
-
-      def join
-        thread.join
       end
     end
 

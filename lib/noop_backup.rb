@@ -12,6 +12,7 @@ module NoopBackup
 
   class BackupError < Error; end
   class DumpTooSmallError < Error; end
+  class DumpFailedError < Error; end
   class ConfigurationError < Error; end
 
   class << self
