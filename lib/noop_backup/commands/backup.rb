@@ -20,6 +20,14 @@ module NoopBackup::Commands
   end
 
   class Backup
+    def self.execute(report: true)
+      result = new.execute
+
+      result.report if report
+
+      result
+    end
+
     def self.execute
       new.execute
     end
