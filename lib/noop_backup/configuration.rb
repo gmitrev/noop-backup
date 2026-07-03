@@ -26,6 +26,8 @@ module NoopBackup
 
       @stores << store
 
+      raise NoopBackup::RuntimeError, "`config.register` requires a block" unless block_given?
+
       yield store
     end
 

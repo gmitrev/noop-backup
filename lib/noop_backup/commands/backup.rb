@@ -1,9 +1,16 @@
 require "open3"
 
 module NoopBackup::Commands
-  CommandResult = Struct.new(:status, :error, :store_results, keyword_init: true) do
+  CommandResult = Struct.new(:error, :store_results, keyword_init: true) do
     def success?
       status == :success
+    end
+
+    def status
+      return :error if error
+      return :error if store_results.blank? || store_results.none?(&:success)
+      return :success if store_results.all?(&:success)
+      :partial_success
     end
 
     def report
@@ -28,10 +35,6 @@ module NoopBackup::Commands
       result
     end
 
-    def self.execute
-      new.execute
-    end
-
     def initialize
       @store_results = []
       @key = generate_key
@@ -51,7 +54,7 @@ module NoopBackup::Commands
         reader, writer = IO.pipe(binmode: true)
 
         thread = Thread.new do
-          @store_results << store.backup!(key, reader)
+          @store_results << store.backup!(@key, reader)
         ensure
           reader.close
         end
@@ -70,12 +73,9 @@ module NoopBackup::Commands
         raise "pipeline failed" unless wait_threads.all? { |t| t.value.success? }
       end
 
-      CommandResult.new(
-        status: @store_results.all?(&:success) ? :success : :partial_success,
-        store_results: @store_results
-      )
+      CommandResult.new(store_results: @store_results)
     rescue => error
-      CommandResult.new(status: :failure, error:)
+      CommandResult.new(error:)
     end
 
     private
