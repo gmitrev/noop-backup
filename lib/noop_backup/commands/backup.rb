@@ -26,25 +26,26 @@ module NoopBackup::Commands
   end
 
   class Backup
-    def self.execute(report: true)
-      result = new.execute
+    def self.execute(report: true, command: nil)
+      result = new(command).execute
 
       result.report if report
 
       result
     end
 
-    def initialize
+    def initialize(command = nil)
       @key = generate_key
       @store_results = []
       @sinks = []
+      @command = command
     end
 
     def execute
       perform_sanity_check!
 
       commands = [
-        [config.pg_env, "pg_dump", "--format=custom", "--no-owner"]
+        @command || [config.pg_env, "pg_dump", "--format=custom", "--no-owner"]
       ]
 
       # Pipe pg_dump through pv if installed for a basic progress report
