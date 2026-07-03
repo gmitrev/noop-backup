@@ -1,22 +1,30 @@
 module NoopBackup
   class Configuration
-    # NOTE: These are all going to change a lot before version 1.0.0
-    attr_accessor :bucket,
-      :region,
-      :access_key_id,
-      :secret_access_key,
-      :prefix,
+    attr_accessor :prefix,
+      :min_size,
       :pg_host,
       :pg_port,
       :pg_user,
       :pg_password,
       :pg_database,
-      :min_size
+      :stores
 
     def initialize
-      @prefix = "database"
-      @notifiers = [NoopBackup::Notifiers::Stdout.new]
+      @prefix = ENV.fetch("NBU_PREIFX", "database")
+      @stores = []
       @min_size = ENV.fetch("NBU_MIN_SIZE", 1024).to_i
+      @notifiers = [NoopBackup::Notifiers::Stdout.new]
+    end
+
+    def register(store_type)
+      store =
+        case store_type.to_sym
+        when :s3 then NoopBackup::Stores::S3.new
+        else raise ConfigurationError, "unknown store type: #{store_type}"
+        end
+
+      @stores << store
+      yield store
     end
 
     def notifier(type)
@@ -47,21 +55,9 @@ module NoopBackup
       }.compact
     end
 
-    def s3_config
-      {
-        region: region,
-        access_key_id: access_key_id,
-        secret_access_key: secret_access_key
-      }.compact
-    end
-
     def db_config
       @db_config ||= defined?(::ActiveRecord) ?
         ::ActiveRecord::Base.connection_db_config.configuration_hash : {}
-    end
-
-    def validate!
-      raise ConfigurationError, "bucket is not configured" if bucket.to_s.empty?
     end
   end
 end

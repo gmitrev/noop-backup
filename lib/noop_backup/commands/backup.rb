@@ -1,7 +1,15 @@
-require "aws-sdk-s3"
 require "open3"
 
 module NoopBackup::Commands
+  class Tee
+    def initialize(writers) = @writers = writers
+
+    def write(chunk)
+      @writers.each { |writer| writer.write(chunk) }
+      chunk.bytesize
+    end
+  end
+
   class Backup
     def self.execute
       new.execute
@@ -14,23 +22,38 @@ module NoopBackup::Commands
         config.pg_env["PGDATABASE"],
         now.strftime("%Y"),
         now.strftime("%m"),
-        "#{now.strftime("%d-%H%M%S")}.dump"
+        "#{now.strftime("%d-%H-%M-%S-%L")}.dump"
       ].compact.join("/")
       @bytes = 0
       @started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     end
 
     def execute
-      config.validate!
-
       commands = [
         [config.pg_env, "pg_dump", "--format=custom", "--no-owner"]
       ]
 
       commands << ["pv", "-btra"] if system("which", "pv", out: File::NULL, err: File::NULL)
 
+      sinks = config.stores.map do |store|
+        reader, writer = IO.pipe(binmode: true)
+
+        thread = Thread.new do
+          store.backup!(@key, reader)
+        ensure
+          reader.close
+        end
+
+        [writer, thread]
+      end
+
+      sinks_fanout = Tee.new(sinks.map(&:first))
+
       Open3.pipeline_r(*commands) do |last_stdout, wait_threads|
-        upload(last_stdout)
+        @bytes = IO.copy_stream(last_stdout, sinks_fanout)
+
+        sinks.each { |writer, _| writer.close }
+        sinks.each { |_, thread| thread.join }
 
         raise "pipeline failed" unless wait_threads.all? { |t| t.value.success? }
       end
@@ -43,7 +66,9 @@ module NoopBackup::Commands
 
       config.notify(success_message(duration))
     rescue => e
-      remove_partial_upload
+      config.stores.each do |store|
+        store.cleanup!(@key)
+      end
 
       config.notify("❌ Backup failed: #{e.message}")
 
@@ -54,28 +79,6 @@ module NoopBackup::Commands
 
     def config
       @config ||= NoopBackup.configuration
-    end
-
-    def s3_client
-      @_s3_client ||= Aws::S3::Client.new(**config.s3_config)
-    end
-
-    # Prefer Aws::S3::TransferManager for streaming uploads if available.
-    # Aws::S3::Resource.upload_stream is deprecated in newer versions
-    def upload(stdout)
-      if defined?(Aws::S3::TransferManager)
-        manager = Aws::S3::TransferManager.new(client: s3_client)
-
-        manager.upload_stream(bucket: config.bucket, key: @key, part_size: 8 * 1024 * 1024, thread_count: 2) do |s3_stream|
-          @bytes = IO.copy_stream(stdout, s3_stream)
-        end
-      else
-        object = Aws::S3::Resource.new(client: s3_client).bucket(config.bucket).object(@key)
-
-        object.upload_stream(part_size: 8 * 1024 * 1024, thread_count: 2) do |s3_stream|
-          @bytes = IO.copy_stream(stdout, s3_stream)
-        end
-      end
     end
 
     def human_size(bytes)
@@ -90,14 +93,9 @@ module NoopBackup::Commands
     end
 
     def success_message(duration)
+      # TODO: Allow stores to plug their own shit
       "✅ #{config.pg_env["PGDATABASE"]} backed up successfully — " \
-        "#{human_size(@bytes)} in #{duration.round(1)}s → #{config.bucket}/#{@key}"
-    end
-
-    def remove_partial_upload
-      s3_client.delete_object(bucket: config.bucket, key: @key)
-    rescue => e
-      warn "Failed to clean up partial upload #{@key}: #{e.message}"
+        "#{human_size(@bytes)} in #{duration.round(1)}s → /#{@key}"
     end
   end
 end

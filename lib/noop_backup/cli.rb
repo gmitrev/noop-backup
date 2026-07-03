@@ -8,8 +8,7 @@ module NoopBackup
     def backup
       NoopBackup.prepare!
       NoopBackup::Commands::Backup.execute
-    rescue => e
-      warn e.message
+    rescue
       exit 1
     end
   end
