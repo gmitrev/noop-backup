@@ -20,7 +20,7 @@ module NoopBackup
       store =
         case store_type.to_sym
         when :s3 then NoopBackup::Stores::S3.new
-        else raise ConfigurationError, "unknown store type: #{store_type}"
+        else raise NoopBackup::ConfigurationError, "unknown store type: #{store_type}"
         end
 
       @stores << store

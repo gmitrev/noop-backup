@@ -19,6 +19,8 @@ module NoopBackup::Stores
 
       validate!
 
+      upload_attempted = true
+
       if defined?(Aws::S3::TransferManager)
         manager = Aws::S3::TransferManager.new(client: s3_client)
 
@@ -39,14 +41,13 @@ module NoopBackup::Stores
     rescue => e
       duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
 
-      cleanup!(key)
+      cleanup!(key) if upload_attempted
 
       Result.new(success: false, error: e, store: :s3, bytes:, key:, duration:)
     end
 
     def validate!
-      # TODO: Check for all settings
-      raise ConfigurationError, "bucket is not configured" if bucket.to_s.empty?
+      raise NoopBackup::ConfigurationError, "bucket is not configured" if bucket.to_s.empty?
     end
 
     def cleanup!(key)
