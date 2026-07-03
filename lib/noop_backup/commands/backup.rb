@@ -1,6 +1,20 @@
 require "open3"
 
 module NoopBackup::Commands
+  CommandResult = Struct.new(:status, :error, :store_results, keyword_init: true) do
+    def report
+      if error
+        # TODO: do not go through configuration
+        NoopBackup.configuration.notify "❌ Fatal error: #{error.message}"
+      else
+        store_results.each do |result|
+          # TODO: do not go through configuration
+          NoopBackup.configuration.notify result.message
+        end
+      end
+    end
+  end
+
   class Backup
     def self.execute
       new.execute
@@ -15,10 +29,14 @@ module NoopBackup::Commands
         now.strftime("%m"),
         "#{now.strftime("%d-%H-%M-%S-%L")}.dump"
       ].compact.join("/")
-      @results = []
+      @store_results = []
     end
 
     def execute
+      raise NoopBackup::ConfigurationError, "No backup stores resistered" if config.stores.empty?
+
+      # TODO: Validate all stores. Report any errors and exit early if any validation fails
+      #
       commands = [
         [config.pg_env, "pg_dump", "--format=custom", "--no-owner"]
       ]
@@ -29,7 +47,7 @@ module NoopBackup::Commands
         reader, writer = IO.pipe(binmode: true)
 
         thread = Thread.new do
-          @results << store.backup!(@key, reader)
+          @store_results << store.backup!(@key, reader)
         ensure
           reader.close
         end
@@ -48,21 +66,18 @@ module NoopBackup::Commands
         raise "pipeline failed" unless wait_threads.all? { |t| t.value.success? }
       end
 
-      report_results
-
-      @results
+      CommandResult.new(
+        status: @store_results.all?(&:success) ? :success : :partial_success,
+        store_results: @store_results
+      )
+    rescue => error
+      CommandResult.new(status: :failure, error:)
     end
 
     private
 
     def config
       @config ||= NoopBackup.configuration
-    end
-
-    def report_results
-      @results.each do |result|
-        config.notify result.message
-      end
     end
   end
 end

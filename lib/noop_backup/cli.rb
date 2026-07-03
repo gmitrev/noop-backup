@@ -7,7 +7,9 @@ module NoopBackup
     desc "backup", "Create and store a new backup"
     def backup
       NoopBackup.prepare!
-      NoopBackup::Commands::Backup.execute
+      result = NoopBackup::Commands::Backup.execute
+
+      result.report
     rescue => e
       warn e
       exit 1
