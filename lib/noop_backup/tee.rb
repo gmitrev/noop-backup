@@ -14,6 +14,12 @@ module NoopBackup
       def close
         writer.close
       end
+
+      def collect
+        thread.value
+      rescue
+        nil
+      end
     end
 
     def initialize(sinks) = @sinks = sinks

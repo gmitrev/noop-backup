@@ -50,21 +50,24 @@ module NoopBackup::Commands
       # Pipe pg_dump through pv if installed for a basic progress report
       commands << ["pv", "-btra"] if system("which", "pv", out: File::NULL, err: File::NULL)
 
-      @sinks = config.stores.map do |store|
-        reader, writer = IO.pipe(binmode: true)
+      Open3.pipeline_r(*commands) do |last_stdout, wait_threads|
+        @sinks = config.stores.map do |store|
+          reader, writer = IO.pipe(binmode: true)
 
-        thread = Thread.new do
-          store.backup!(@key, reader)
-        ensure
-          reader.close
+          thread = Thread.new do
+            store.backup!(@key, reader)
+          rescue => e
+            # *always* return a Result, even if unexpected. Add store name for debugging
+            NoopBackup::Stores::Result.new(success: false, error: e, store: store.class.name, key: @key)
+          ensure
+            reader.close
+          end
+
+          NoopBackup::Tee::Sink.new(store:, writer:, thread:)
         end
 
-        NoopBackup::Tee::Sink.new(store:, writer:, thread:)
-      end
+        sinks_fanout = NoopBackup::Tee.new(@sinks)
 
-      sinks_fanout = NoopBackup::Tee.new(@sinks)
-
-      Open3.pipeline_r(*commands) do |last_stdout, wait_threads|
         begin
           IO.copy_stream(last_stdout, sinks_fanout)
         rescue => e
@@ -73,7 +76,7 @@ module NoopBackup::Commands
           @sinks.each(&:close)
         end
 
-        @store_results = @sinks.map { |sink| sink.thread.value }
+        @store_results = @sinks.map(&:collect)
 
         raise NoopBackup::DumpFailedError, "pipeline failed" unless wait_threads.all? { |t| t.value.success? }
       end
@@ -81,15 +84,15 @@ module NoopBackup::Commands
       CommandResult.new(store_results: @store_results)
     rescue NoopBackup::DumpFailedError => error
       # The dump stream itself failed, so uploads that finished are truncated copies of a bad stream — delete them.
+      # Collect the results first: if copy_stream raised, the collection line above never ran. Sinks are already
+      # closed on every DumpFailedError path, so collect can't block.
+      @store_results = @sinks.map(&:collect)
+
       cleanup_uploaded_stores!
 
       CommandResult.new(error:, store_results: @store_results)
     rescue => error
       CommandResult.new(error:, store_results: @store_results)
-    ensure
-      # If pipeline_r raised before its block ran (e.g. pg_dump not on PATH), the writers were never closed and the
-      # store threads would block on read forever. IO#close is idempotent, so re-closing on other paths is harmless.
-      @sinks.each(&:close)
     end
 
     private
@@ -105,13 +108,7 @@ module NoopBackup::Commands
 
     def cleanup_uploaded_stores!
       @sinks.each do |sink|
-        result = begin
-          sink.thread.value
-        rescue
-          nil
-        end
-
-        sink.store.cleanup!(@key) if result&.success
+        sink.store.cleanup!(@key) if sink.collect&.success
       rescue => e
         NoopBackup.notify "⚠️ Cleanup failed for #{sink.store.class}: #{e.message}"
       end
