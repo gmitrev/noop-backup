@@ -4,6 +4,8 @@ module NoopBackup
       attr_reader :error
 
       def write(chunk)
+        return if @error
+
         writer.write(chunk)
       rescue Errno::EPIPE, IOError => e
         @error = e
