@@ -2,6 +2,10 @@ require "open3"
 
 module NoopBackup::Commands
   CommandResult = Struct.new(:status, :error, :store_results, keyword_init: true) do
+    def success?
+      status == :success
+    end
+
     def report
       if error
         # TODO: do not go through configuration
