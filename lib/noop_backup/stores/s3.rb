@@ -16,19 +16,26 @@ module NoopBackup::Stores
     def backup!(key, stream)
       validate!
 
+      bytes = 0
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
       if defined?(Aws::S3::TransferManager)
         manager = Aws::S3::TransferManager.new(client: s3_client)
 
         manager.upload_stream(bucket:, key: key, part_size: 8 * 1024 * 1024, thread_count: 2) do |s3_stream|
-          IO.copy_stream(stream, s3_stream)
+          bytes = IO.copy_stream(stream, s3_stream)
         end
       else
         object = Aws::S3::Resource.new(client: s3_client).bucket(bucket).object(key)
 
         object.upload_stream(part_size: 8 * 1024 * 1024, thread_count: 2) do |s3_stream|
-          IO.copy_stream(stream, s3_stream)
+          bytes = IO.copy_stream(stream, s3_stream)
         end
       end
+
+      duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
+
+      Result.new(success: true, store: :s3, bytes:, key:, duration:)
     end
 
     def validate!
