@@ -83,6 +83,7 @@ module NoopBackup::Commands
     # 2. Make sure **all** stores have a valid configuration
     def perform_sanity_check!
       raise NoopBackup::ConfigurationError, "No backup stores registered" if config.stores.empty?
+      raise NoopBackup::ConfigurationError, "Could not resolve PGDATABASE" if config.pg_env["PGDATABASE"].to_s.empty?
 
       config.stores.each(&:validate!)
     end
