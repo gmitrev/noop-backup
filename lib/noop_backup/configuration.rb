@@ -9,12 +9,22 @@ module NoopBackup
       :pg_database
 
     attr_reader :stores, :notifiers
+    attr_writer :report, :dump_command
 
     def initialize
       @prefix = ENV.fetch("NBU_PREFIX", "database")
       @stores = []
       @min_size = ENV.fetch("NBU_MIN_SIZE", 2048).to_i
       @notifiers = [NoopBackup::Notifiers::Stdout.new]
+      @report = true
+    end
+
+    def report?
+      @report
+    end
+
+    def dump_command
+      @dump_command || [pg_env, "pg_dump", "--format=custom", "--no-owner"]
     end
 
     def register(store_type)

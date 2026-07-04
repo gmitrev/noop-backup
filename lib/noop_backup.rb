@@ -22,12 +22,6 @@ module NoopBackup
 
     alias_method :config, :configuration
 
-    attr_writer :testing
-
-    def testing?
-      !!@testing
-    end
-
     def reset!
       @configuration = nil
     end

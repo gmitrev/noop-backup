@@ -26,30 +26,27 @@ module NoopBackup::Commands
   end
 
   class Backup
-    def self.execute(report: !NoopBackup.testing?, command: nil)
-      result = new(command).execute
+    def self.execute(report: NoopBackup.config.report?)
+      result = new.execute
 
       result.report if report
 
       result
     end
 
-    def initialize(command = nil)
+    def initialize
       @key = generate_key
       @store_results = []
       @sinks = []
-      @command = command
     end
 
     def execute
       perform_sanity_check!
 
-      commands = [
-        @command || [config.pg_env, "pg_dump", "--format=custom", "--no-owner"]
-      ]
+      commands = [config.dump_command]
 
       # Pipe pg_dump through pv if installed for a basic progress report
-      commands << ["pv", "-btra"] if !NoopBackup.testing? && system("which", "pv", out: File::NULL, err: File::NULL)
+      commands << ["pv", "-btra"] if config.report? && system("which", "pv", out: File::NULL, err: File::NULL)
 
       Open3.pipeline_r(*commands) do |last_stdout, wait_threads|
         @sinks = config.stores.map do |store|

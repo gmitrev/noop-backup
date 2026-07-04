@@ -8,39 +8,27 @@ module NoopBackup
 
     def test_single_store_streams_full_dump
       sink = StringIO.new
-      fake_store = NoopBackup::Stores::FakeStore.new(sink:)
-      fake_store.key = "test-123"
-
-      NoopBackup.configure do |config|
-        config.pg_database = "test-123"
-        config.stores << fake_store
-      end
+      fake_store = build_store(sink:)
 
       text = "Look at my horse, my horse is amazing"
-      command = generate_shell_command(output: text)
+      configure(stores: [fake_store], command: dump_command(output: text))
 
-      result = NoopBackup::Commands::Backup.execute(command:)
+      result = NoopBackup::Commands::Backup.execute
 
       assert result.success?
-      assert_equal(sink.string, text)
+      assert_equal(text, sink.string)
     end
 
     def test_two_stores_stream_full_dump
       sink_a = StringIO.new
       sink_b = StringIO.new
-      store_a = NoopBackup::Stores::FakeStore.new(sink: sink_a)
-      store_b = NoopBackup::Stores::FakeStore.new(sink: sink_b)
-      store_a.key = store_b.key = "test-123"
-
-      NoopBackup.configure do |config|
-        config.pg_database = "test-123"
-        config.stores << store_a << store_b
-      end
+      store_a = build_store(sink: sink_a)
+      store_b = build_store(sink: sink_b)
 
       text = "Look at my horse, my horse is amazing"
-      command = generate_shell_command(output: text)
+      configure(stores: [store_a, store_b], command: dump_command(output: text))
 
-      result = NoopBackup::Commands::Backup.execute(command:)
+      result = NoopBackup::Commands::Backup.execute
 
       assert result.success?
       assert_equal(text, sink_a.string)
@@ -51,17 +39,11 @@ module NoopBackup
 
     def test_dump_failure_cleans_up_stores_that_already_succeeded
       sink = StringIO.new
-      fake_store = NoopBackup::Stores::FakeStore.new(sink:)
-      fake_store.key = "test-123"
+      fake_store = build_store(sink:)
 
-      NoopBackup.configure do |config|
-        config.pg_database = "test-123"
-        config.stores << fake_store
-      end
+      configure(stores: [fake_store], command: dump_command(output: "truncated dump", exit_code: 1))
 
-      command = generate_shell_command(output: "truncated dump", exit_code: 1)
-
-      result = NoopBackup::Commands::Backup.execute(command:)
+      result = NoopBackup::Commands::Backup.execute
 
       refute result.success?
       assert_instance_of NoopBackup::DumpFailedError, result.error
@@ -70,7 +52,22 @@ module NoopBackup
 
     private
 
-    def generate_shell_command(output:, exit_code: 0)
+    def build_store(sink:)
+      store = NoopBackup::Stores::FakeStore.new(sink:)
+      store.key = "test-123"
+      store
+    end
+
+    def configure(stores:, command:)
+      NoopBackup.configure do |config|
+        config.pg_database = "test-123"
+        config.report = false
+        config.dump_command = command
+        stores.each { |store| config.stores << store }
+      end
+    end
+
+    def dump_command(output:, exit_code: 0)
       [
         RbConfig.ruby,
         "-e",
