@@ -51,6 +51,25 @@ module NoopBackup
       assert result.store_results.all?(&:success)
     end
 
+    def test_dump_failure_cleans_up_stores_that_already_succeeded
+      sink = StringIO.new
+      fake_store = NoopBackup::Stores::FakeStore.new(sink:)
+      fake_store.key = "test-123"
+
+      NoopBackup.configure do |config|
+        config.pg_database = "test-123"
+        config.stores << fake_store
+      end
+
+      command = generate_shell_command(output: "truncated dump", exit_code: 1)
+
+      result = NoopBackup::Commands::Backup.execute(command:, report: false)
+
+      refute result.success?
+      assert_instance_of NoopBackup::DumpFailedError, result.error
+      assert_equal(1, fake_store.cleanup_calls.size)
+    end
+
     private
 
     def generate_shell_command(output:, exit_code: 0)

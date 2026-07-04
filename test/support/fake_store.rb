@@ -1,10 +1,11 @@
 module NoopBackup::Stores
   class FakeStore < Store
     attr_accessor :key
-    attr_reader :sink
+    attr_reader :sink, :cleanup_calls
 
     def initialize(sink: StringIO.new)
       @sink = sink
+      @cleanup_calls = []
     end
 
     def backup!(key, stream)
@@ -17,6 +18,7 @@ module NoopBackup::Stores
     end
 
     def cleanup!(key)
+      @cleanup_calls << key
     end
   end
 end
