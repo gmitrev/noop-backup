@@ -2,13 +2,15 @@ require "aws-sdk-s3"
 
 module NoopBackup::Stores
   class S3 < Store
-    attr_accessor :bucket, :region, :access_key_id, :secret_access_key
+    attr_accessor :bucket, :region, :access_key_id, :secret_access_key, :part_size, :thread_count
 
     def initialize
       @bucket = ENV["AWS_S3_BUCKET"]
       @region = ENV["AWS_REGION"]
       @access_key_id = ENV["AWS_ACCESS_KEY_ID"]
       @secret_access_key = ENV["AWS_SECRET_ACCESS_KEY"]
+      @part_size = ENV.fetch("NBU_S3_PART_SIZE", 8 * 1024 * 1024).to_i
+      @thread_count = ENV.fetch("NBU_S3_THREAD_COUNT", 2).to_i
     end
 
     # Prefer Aws::S3::TransferManager for streaming uploads if available.
@@ -24,13 +26,13 @@ module NoopBackup::Stores
       if defined?(Aws::S3::TransferManager)
         manager = Aws::S3::TransferManager.new(client: s3_client)
 
-        manager.upload_stream(bucket:, key: key, part_size: 8 * 1024 * 1024, thread_count: 2) do |s3_stream|
+        manager.upload_stream(bucket:, key: key, part_size:, thread_count:) do |s3_stream|
           bytes = IO.copy_stream(stream, s3_stream)
         end
       else
         object = Aws::S3::Resource.new(client: s3_client).bucket(bucket).object(key)
 
-        object.upload_stream(part_size: 8 * 1024 * 1024, thread_count: 2) do |s3_stream|
+        object.upload_stream(part_size:, thread_count:) do |s3_stream|
           bytes = IO.copy_stream(stream, s3_stream)
         end
       end

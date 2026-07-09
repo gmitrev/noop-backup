@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- Make s3 upload stream part size and thread count configurable
+
 ## [0.2.0] - 2026-07-04
 
 - Support multiple destination stores in a single backup run
