@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-13
+
 - **Renamed the gem from `noop-backup` to `boring-backup`.** Breaking, with no shims:
   - `NoopBackup` namespace is now `BoringBackup`
   - executable `nbu` is now `bb`
