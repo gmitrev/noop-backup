@@ -1,7 +1,10 @@
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-13
+
 - Make s3 upload stream part size and thread count configurable
 - Sentinel integration
+- Option to ignore tables
 
 ## [0.2.0] - 2026-07-04
 
