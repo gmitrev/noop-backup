@@ -1,4 +1,4 @@
-module NoopBackup::Stores
+module BoringBackup::Stores
   class FakeStore < Store
     attr_accessor :key
     attr_reader :sink, :cleanup_calls
@@ -14,7 +14,7 @@ module NoopBackup::Stores
     end
 
     def validate!
-      raise NoopBackup::ConfigurationError, "key is not configured" unless key
+      raise BoringBackup::ConfigurationError, "key is not configured" unless key
     end
 
     def cleanup!(key)

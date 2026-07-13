@@ -1,6 +1,6 @@
 require "aws-sdk-s3"
 
-module NoopBackup::Stores
+module BoringBackup::Stores
   class S3 < Store
     DEFAULT_STORAGE_CLASS = :standard_ia
 
@@ -26,9 +26,9 @@ module NoopBackup::Stores
       @region = ENV["AWS_REGION"]
       @access_key_id = ENV["AWS_ACCESS_KEY_ID"]
       @secret_access_key = ENV["AWS_SECRET_ACCESS_KEY"]
-      @part_size = ENV.fetch("NBU_S3_PART_SIZE", 8 * 1024 * 1024).to_i
-      @thread_count = ENV.fetch("NBU_S3_THREAD_COUNT", 2).to_i
-      @storage_class = ENV.fetch("NBU_S3_STORAGE_CLASS", DEFAULT_STORAGE_CLASS)
+      @part_size = ENV.fetch("BB_S3_PART_SIZE", 8 * 1024 * 1024).to_i
+      @thread_count = ENV.fetch("BB_S3_THREAD_COUNT", 2).to_i
+      @storage_class = ENV.fetch("BB_S3_STORAGE_CLASS", DEFAULT_STORAGE_CLASS)
     end
 
     def storage_class
@@ -64,7 +64,7 @@ module NoopBackup::Stores
       duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
 
       if config.min_size && bytes < config.min_size.to_i
-        raise NoopBackup::DumpTooSmallError, "backup too small: #{NoopBackup.utils.human_size(bytes)} < min_size (#{NoopBackup.utils.human_size(config.min_size)})"
+        raise BoringBackup::DumpTooSmallError, "backup too small: #{BoringBackup.utils.human_size(bytes)} < min_size (#{BoringBackup.utils.human_size(config.min_size)})"
       end
 
       Result.new(success: true, store: :s3, bytes:, key:, duration:)
@@ -77,15 +77,15 @@ module NoopBackup::Stores
     end
 
     def validate!
-      raise NoopBackup::ConfigurationError, "bucket is not configured" if bucket.to_s.empty?
+      raise BoringBackup::ConfigurationError, "bucket is not configured" if bucket.to_s.empty?
 
       if access_key_id.to_s.empty? != secret_access_key.to_s.empty?
-        raise NoopBackup::ConfigurationError,
+        raise BoringBackup::ConfigurationError,
           "access_key_id and secret_access_key must both be set, or both left blank to use the default AWS credential chain"
       end
 
       if storage_class && !STORAGE_CLASSES.include?(storage_class)
-        raise NoopBackup::ConfigurationError,
+        raise BoringBackup::ConfigurationError,
           "unknown storage class: #{storage_class.inspect} (expected one of: #{STORAGE_CLASSES.map(&:inspect).join(", ")}, or nil to use the bucket default)"
       end
     end

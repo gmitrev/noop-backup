@@ -1,4 +1,4 @@
-module NoopBackup::Utils
+module BoringBackup::Utils
   extend self
 
   def human_size(bytes)

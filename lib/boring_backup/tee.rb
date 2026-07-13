@@ -1,4 +1,4 @@
-module NoopBackup
+module BoringBackup
   class Tee
     Sink = Struct.new(:store, :writer, :thread, keyword_init: true) do
       def write(chunk)

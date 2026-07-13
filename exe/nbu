@@ -1,6 +1,0 @@
-#!/usr/bin/env ruby
-
-require "noop_backup"
-require "noop_backup/cli"
-
-NoopBackup::CLI.start(ARGV)

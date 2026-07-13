@@ -2,7 +2,7 @@ require "net/http"
 require "uri"
 require "json"
 
-module NoopBackup::Notifiers
+module BoringBackup::Notifiers
   class Sentinel
     PAYLOAD_VERSION = 1
 
@@ -32,7 +32,7 @@ module NoopBackup::Notifiers
         response = post(body)
 
         return true if response.is_a?(Net::HTTPSuccess)
-        raise NoopBackup::Error, "#{response.code} #{response.body}" if retryable?(response)
+        raise BoringBackup::Error, "#{response.code} #{response.body}" if retryable?(response)
 
         warn "Sentinel ping failed: #{response.code} #{response.body}"
 
@@ -84,7 +84,7 @@ module NoopBackup::Notifiers
         version: PAYLOAD_VERSION,
         status: result.status,
         error: result.error&.message,
-        database: NoopBackup.config.pg_env["PGDATABASE"],
+        database: BoringBackup.config.pg_env["PGDATABASE"],
         bytes: store_results.filter_map(&:bytes).max,
         duration: store_results.filter_map(&:duration).max&.round(3),
         stores: store_results.map do |store_result|

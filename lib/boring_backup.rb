@@ -1,14 +1,14 @@
-require_relative "noop_backup/version"
-require_relative "noop_backup/configuration"
-require_relative "noop_backup/tee"
-require_relative "noop_backup/utils"
-require_relative "noop_backup/stores"
-require_relative "noop_backup/commands/backup"
-require_relative "noop_backup/notifiers/slack"
-require_relative "noop_backup/notifiers/stdout"
-require_relative "noop_backup/notifiers/sentinel"
+require_relative "boring_backup/version"
+require_relative "boring_backup/configuration"
+require_relative "boring_backup/tee"
+require_relative "boring_backup/utils"
+require_relative "boring_backup/stores"
+require_relative "boring_backup/commands/backup"
+require_relative "boring_backup/notifiers/slack"
+require_relative "boring_backup/notifiers/stdout"
+require_relative "boring_backup/notifiers/sentinel"
 
-module NoopBackup
+module BoringBackup
   class Error < StandardError; end
 
   class DumpTooSmallError < Error; end
@@ -60,9 +60,9 @@ module NoopBackup
     end
 
     def utils
-      NoopBackup::Utils
+      BoringBackup::Utils
     end
   end
 end
 
-require_relative "noop_backup/plugins/rails" if defined? Rails::Railtie
+require_relative "boring_backup/plugins/rails" if defined? Rails::Railtie

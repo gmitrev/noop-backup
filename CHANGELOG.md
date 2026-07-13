@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+- **Renamed the gem from `noop-backup` to `boring-backup`.** Breaking, with no shims:
+  - `NoopBackup` namespace is now `BoringBackup`
+  - executable `nbu` is now `bb`
+  - `require "noop_backup"` is now `require "boring_backup"`
+  - env vars are prefixed `BB_` instead of `NBU_` (`BB_PREFIX`, `BB_MIN_SIZE`,
+    `BB_IGNORE_TABLES`, `BB_SENTINEL_KEY`, `BB_SENTINEL_HOST`, `BB_S3_PART_SIZE`,
+    `BB_S3_THREAD_COUNT`, `BB_S3_STORAGE_CLASS`)
 - Configurable storage classes for s3
 
 ## [0.3.0] - 2026-07-13

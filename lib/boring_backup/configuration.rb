@@ -1,4 +1,4 @@
-module NoopBackup
+module BoringBackup
   class Configuration
     DEFAULT_SENTINEL_HOST = "https://boringbackup.com"
 
@@ -15,14 +15,14 @@ module NoopBackup
     attr_writer :report, :dump_command, :ignore_tables, :sentinel_host
 
     def initialize
-      @prefix = ENV.fetch("NBU_PREFIX", "database")
+      @prefix = ENV.fetch("BB_PREFIX", "database")
       @stores = []
-      @min_size = ENV.fetch("NBU_MIN_SIZE", 2048).to_i
-      @notifiers = [NoopBackup::Notifiers::Stdout.new]
+      @min_size = ENV.fetch("BB_MIN_SIZE", 2048).to_i
+      @notifiers = [BoringBackup::Notifiers::Stdout.new]
       @report = true
-      @ignore_tables = ENV.fetch("NBU_IGNORE_TABLES", "").split(",")
-      @sentinel_key = ENV["NBU_SENTINEL_KEY"]
-      @sentinel_host = ENV.fetch("NBU_SENTINEL_HOST", DEFAULT_SENTINEL_HOST)
+      @ignore_tables = ENV.fetch("BB_IGNORE_TABLES", "").split(",")
+      @sentinel_key = ENV["BB_SENTINEL_KEY"]
+      @sentinel_host = ENV.fetch("BB_SENTINEL_HOST", DEFAULT_SENTINEL_HOST)
     end
 
     def report?
@@ -40,7 +40,7 @@ module NoopBackup
     def sentinel
       return unless sentinel?
 
-      @sentinel ||= NoopBackup::Notifiers::Sentinel.new(key: sentinel_key, host: sentinel_host)
+      @sentinel ||= BoringBackup::Notifiers::Sentinel.new(key: sentinel_key, host: sentinel_host)
     end
 
     def notifiers
@@ -62,12 +62,12 @@ module NoopBackup
     end
 
     def register(store_type)
-      raise NoopBackup::ConfigurationError, "`config.register` requires a block" unless block_given?
+      raise BoringBackup::ConfigurationError, "`config.register` requires a block" unless block_given?
 
       store =
         case store_type.to_sym
-        when :s3 then NoopBackup::Stores::S3.new
-        else raise NoopBackup::ConfigurationError, "unknown store type: #{store_type}"
+        when :s3 then BoringBackup::Stores::S3.new
+        else raise BoringBackup::ConfigurationError, "unknown store type: #{store_type}"
         end
 
       @stores << store
@@ -78,7 +78,7 @@ module NoopBackup
     def notifier(type)
       case type
       when :slack
-        notifier = NoopBackup::Notifiers::Slack.new
+        notifier = BoringBackup::Notifiers::Slack.new
 
         yield notifier
 

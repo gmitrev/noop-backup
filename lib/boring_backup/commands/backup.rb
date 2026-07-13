@@ -1,6 +1,6 @@
 require "open3"
 
-module NoopBackup::Commands
+module BoringBackup::Commands
   CommandResult = Struct.new(:error, :store_results, keyword_init: true) do
     def success?
       status == :success
@@ -21,12 +21,12 @@ module NoopBackup::Commands
     end
 
     def report
-      NoopBackup.notify(self)
+      BoringBackup.notify(self)
     end
   end
 
   class Backup
-    def self.execute(report: NoopBackup.config.report?)
+    def self.execute(report: BoringBackup.config.report?)
       result = new.execute
 
       result.report if report
@@ -56,31 +56,31 @@ module NoopBackup::Commands
             store.backup!(@key, reader)
           rescue => e
             # *always* return a Result, even if unexpected. Add store name for debugging.
-            NoopBackup::Stores::Result.new(success: false, error: e, store: store.class.name, key: @key)
+            BoringBackup::Stores::Result.new(success: false, error: e, store: store.class.name, key: @key)
           ensure
             reader.close
           end
 
-          NoopBackup::Tee::Sink.new(store:, writer:, thread:)
+          BoringBackup::Tee::Sink.new(store:, writer:, thread:)
         end
 
-        sinks_fanout = NoopBackup::Tee.new(@sinks)
+        sinks_fanout = BoringBackup::Tee.new(@sinks)
 
         begin
           IO.copy_stream(last_stdout, sinks_fanout)
         rescue => e
-          raise NoopBackup::DumpFailedError, "streaming failed: #{e.message}"
+          raise BoringBackup::DumpFailedError, "streaming failed: #{e.message}"
         ensure
           @sinks.each(&:close)
         end
 
         @store_results = @sinks.map(&:collect)
 
-        raise NoopBackup::DumpFailedError, "pipeline failed" unless wait_threads.all? { |t| t.value.success? }
+        raise BoringBackup::DumpFailedError, "pipeline failed" unless wait_threads.all? { |t| t.value.success? }
       end
 
       CommandResult.new(store_results: @store_results)
-    rescue NoopBackup::DumpFailedError => error
+    rescue BoringBackup::DumpFailedError => error
       # The dump stream itself failed, so uploads that finished are truncated copies of a bad stream — delete them.
       # Collect the results first: if copy_stream raised, the collection line above never ran. Sinks are already
       # closed on every DumpFailedError path, so collect can't block.
@@ -98,8 +98,8 @@ module NoopBackup::Commands
     # 1. Check if any stores are registered.
     # 2. Make sure **all** stores have a valid configuration
     def perform_sanity_check!
-      raise NoopBackup::ConfigurationError, "No backup stores registered" if config.stores.empty?
-      raise NoopBackup::ConfigurationError, "Could not resolve PGDATABASE" if config.pg_env["PGDATABASE"].to_s.empty?
+      raise BoringBackup::ConfigurationError, "No backup stores registered" if config.stores.empty?
+      raise BoringBackup::ConfigurationError, "Could not resolve PGDATABASE" if config.pg_env["PGDATABASE"].to_s.empty?
 
       config.stores.each(&:validate!)
     end
@@ -113,7 +113,7 @@ module NoopBackup::Commands
     end
 
     def config
-      @config ||= NoopBackup.config
+      @config ||= BoringBackup.config
     end
 
     # File name of the current backup. Example:

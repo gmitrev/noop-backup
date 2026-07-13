@@ -1,19 +1,19 @@
-require_relative "lib/noop_backup/version"
+require_relative "lib/boring_backup/version"
 
 Gem::Specification.new do |spec|
-  spec.name = "noop-backup"
-  spec.version = NoopBackup::VERSION
+  spec.name = "boring-backup"
+  spec.version = BoringBackup::VERSION
   spec.authors = ["Georgi Mitrev"]
   spec.email = ["gvmitrev@gmail.com"]
 
   spec.summary = "Hassle-free database backups"
   spec.description = "The simplest way to add recurring database backups to your project with minimal setup required."
-  spec.homepage = "https://github.com/gmitrev/noop-backup"
+  spec.homepage = "https://github.com/gmitrev/boring-backup"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.1.0"
   spec.metadata["homepage_uri"] = spec.homepage
-  spec.metadata["source_code_uri"] = "https://github.com/gmitrev/noop-backup/tree/main"
-  spec.metadata["changelog_uri"] = "https://github.com/gmitrev/noop-backup/blob/main/CHANGELOG.md"
+  spec.metadata["source_code_uri"] = "https://github.com/gmitrev/boring-backup/tree/main"
+  spec.metadata["changelog_uri"] = "https://github.com/gmitrev/boring-backup/blob/main/CHANGELOG.md"
   spec.metadata["rubygems_mfa_required"] = "true"
   spec.metadata["allowed_push_host"] = "https://rubygems.org"
 
@@ -25,7 +25,7 @@ Gem::Specification.new do |spec|
     end
   end
   spec.bindir = "exe"
-  spec.executables = ["nbu"]
+  spec.executables = ["bb"]
   spec.require_paths = ["lib"]
 
   spec.add_dependency "thor"

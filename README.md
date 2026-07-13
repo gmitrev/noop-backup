@@ -1,4 +1,4 @@
-# NoopBackup
+# BoringBackup
 
 Ruby gem for backing up PostgreSQL databases with minimum effort.
 
@@ -9,13 +9,13 @@ This gem is very much __unstable__. Expect APIs to change a lot before v1.0.0 is
 If using bundler, add the gem to your `Gemfile`:
 
 ```bash
-bundle add noop-backup
+bundle add boring-backup
 ```
 
 If bundler is not being used to manage dependencies, install the gem by executing:
 
 ```bash
-gem install noop-backup
+gem install boring-backup
 ```
 
 The gem requires `pg_dump` to be installed on the machine that is running it.
@@ -26,29 +26,29 @@ The gem requires `pg_dump` to be installed on the machine that is running it.
 
 #### Rails 8 with Solid Queue
 
-Add the NoopBackup job to the `config/recurring.yml` file:
+Add the BoringBackup job to the `config/recurring.yml` file:
 
 ```yaml
 production:
   # other jobs
-  noop_backup:
-    class: NoopBackup::BackupJob
+  boring_backup:
+    class: BoringBackup::BackupJob
     schedule: at 3am every day
 ```
 
 The job will run on the `:default` queue on your desired schedule.
 If you wish to customize the job, create a new one and make sure to invoke
-`NoopBackup::Commands::Backup.execute` in the `perform` method.
+`BoringBackup::Commands::Backup.execute` in the `perform` method.
 
 
 #### Sidekiq, Good Job, whenever
 
-Create a new recurring job and have it invoke `NoopBackup::Commands::Backup.execute`
+Create a new recurring job and have it invoke `BoringBackup::Commands::Backup.execute`
 
 ### Manually
 
 ```sh
-bundle exec nbu backup
+bundle exec bb backup
 ```
 
 This command will dump the database and stream it to your configured destinations without writing
@@ -59,9 +59,9 @@ anything to disk. Use any scheduler or even cron to run it periodically.
 All configuration options can be edited in the initializer:
 
 ```rb
-# config/initializers/noop-backup.rb
+# config/initializers/boring-backup.rb
 
-NoopBackup.configure do |config|
+BoringBackup.configure do |config|
   config.register(:s3) do |store|
     store.bucket = Settings.aws.bucket
     store.region = Settings.aws.region
@@ -80,12 +80,12 @@ end
 To skip the rows of tables you don't need backed up, such as audit trails or job history:
 
 ```rb
-NoopBackup.configure do |config|
+BoringBackup.configure do |config|
   config.ignore_tables = %w[versions logs]
 end
 ```
 
-Or set `NBU_IGNORE_TABLES=versions,logs`.
+Or set `BB_IGNORE_TABLES=versions,logs`.
 
 A restore still creates these tables empty.
 
@@ -97,7 +97,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/gmitrev/noop-backup.
+Bug reports and pull requests are welcome on GitHub at https://github.com/gmitrev/boring-backup.
 
 ## Wishlist
 

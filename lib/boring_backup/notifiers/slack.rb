@@ -2,7 +2,7 @@ require "net/http"
 require "uri"
 require "json"
 
-module NoopBackup::Notifiers
+module BoringBackup::Notifiers
   class Slack
     OPEN_TIMEOUT = 5
     READ_TIMEOUT = 10

@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+
+require "boring_backup"
+require "boring_backup/cli"
+
+BoringBackup::CLI.start(ARGV)

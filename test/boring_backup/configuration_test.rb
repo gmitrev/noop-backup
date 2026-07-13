@@ -1,9 +1,9 @@
 require "test_helper"
 
-module NoopBackup
+module BoringBackup
   class ConfigurationTest < Minitest::Test
     def setup
-      NoopBackup.reset!
+      BoringBackup.reset!
     end
 
     def test_dump_command_without_ignore_tables
@@ -47,11 +47,11 @@ module NoopBackup
     end
 
     def test_ignore_tables_reads_the_env_var
-      with_env("NBU_IGNORE_TABLES", "versions,logs") do
+      with_env("BB_IGNORE_TABLES", "versions,logs") do
         assert_equal(["versions", "logs"], build_config.ignore_tables)
       end
 
-      with_env("NBU_IGNORE_TABLES", "") do
+      with_env("BB_IGNORE_TABLES", "") do
         assert_empty(build_config.ignore_tables)
       end
     end
@@ -67,8 +67,8 @@ module NoopBackup
     private
 
     def build_config
-      config = NoopBackup::Configuration.new
-      config.pg_database = "noop_backup_test"
+      config = BoringBackup::Configuration.new
+      config.pg_database = "boring_backup_test"
       config
     end
 

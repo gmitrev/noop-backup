@@ -1,9 +1,9 @@
 require "test_helper"
 
-module NoopBackup
+module BoringBackup
   class Commands::BackupTest < Minitest::Test
     def setup
-      NoopBackup.reset!
+      BoringBackup.reset!
     end
 
     def test_single_store_streams_full_dump
@@ -13,7 +13,7 @@ module NoopBackup
       text = "Look at my horse, my horse is amazing"
       configure(stores: [fake_store], command: dump_command(output: text))
 
-      result = NoopBackup::Commands::Backup.execute
+      result = BoringBackup::Commands::Backup.execute
 
       assert result.success?
       assert_equal(text, sink.string)
@@ -28,7 +28,7 @@ module NoopBackup
       text = "Look at my horse, my horse is amazing"
       configure(stores: [store_a, store_b], command: dump_command(output: text))
 
-      result = NoopBackup::Commands::Backup.execute
+      result = BoringBackup::Commands::Backup.execute
 
       assert result.success?
       assert_equal(text, sink_a.string)
@@ -43,23 +43,23 @@ module NoopBackup
 
       configure(stores: [fake_store], command: dump_command(output: "truncated dump", exit_code: 1))
 
-      result = NoopBackup::Commands::Backup.execute
+      result = BoringBackup::Commands::Backup.execute
 
       refute result.success?
-      assert_instance_of NoopBackup::DumpFailedError, result.error
+      assert_instance_of BoringBackup::DumpFailedError, result.error
       assert_equal(1, fake_store.cleanup_calls.size)
     end
 
     private
 
     def build_store(sink:)
-      store = NoopBackup::Stores::FakeStore.new(sink:)
+      store = BoringBackup::Stores::FakeStore.new(sink:)
       store.key = "test-123"
       store
     end
 
     def configure(stores:, command:)
-      NoopBackup.configure do |config|
+      BoringBackup.configure do |config|
         config.pg_database = "test-123"
         config.report = false
         config.dump_command = command
