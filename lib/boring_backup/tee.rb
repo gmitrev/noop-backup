@@ -22,10 +22,19 @@ module BoringBackup
       end
     end
 
-    def initialize(sinks) = @sinks = sinks
+    attr_reader :bytes
+
+    def initialize(sinks, progress: nil)
+      @sinks = sinks
+      @progress = progress
+      @bytes = 0
+    end
 
     def write(chunk)
       @sinks.each { |sink| sink.write(chunk) }
+
+      @bytes += chunk.bytesize
+      @progress&.call(@bytes)
 
       chunk.bytesize
     end

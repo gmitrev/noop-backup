@@ -14,6 +14,9 @@ module BoringBackup
     DEFAULT_SCHEDULE = "every day at 3am"
     PRODUCTION_ANCHOR = /^production:[ \t]*\r?\n/
 
+    SPINNER = %w[⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏].freeze
+    REDRAW_INTERVAL = 0.1
+
     add_runtime_options!
 
     def self.exit_on_failure? = true
@@ -22,11 +25,18 @@ module BoringBackup
 
     desc "backup", "Create and store a new backup"
     def backup
-      BoringBackup.prepare!
-      result = BoringBackup::Commands::Backup.execute
+      spinner("Booting") { BoringBackup.prepare! }
+
+      say "  #{pastel.bold("Boring Backup")}  #{pastel.dim(BoringBackup.config.pg_env["PGDATABASE"])}"
+
+      result = stream_backup
+
+      result.store_results.each { |store_result| say "  #{store_line(store_result)}" }
+      say "\n  #{verdict(result)}\n"
+
       exit 1 unless result.success?
     rescue => e
-      warn e
+      say "  #{pastel.red("✗")} #{e.message}\n"
       exit 1
     end
 
@@ -45,6 +55,66 @@ module BoringBackup
     end
 
     private
+
+    # pg_dump's output size is unknowable up front (custom format self-compresses), so this
+    # is a live meter, not a percentage bar.
+    def stream_backup
+      BoringBackup.config.silence_stdout!
+
+      @started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      @frame = 0
+
+      BoringBackup::Commands::Backup.execute(progress: meter)
+    ensure
+      clear_line
+    end
+
+    # The callback runs on every chunk, so redraws are throttled and skipped entirely
+    # when stdout isn't a terminal (cron, queue logs).
+    def meter
+      return unless $stdout.tty?
+
+      ->(bytes) { draw_meter(bytes) }
+    end
+
+    def draw_meter(bytes)
+      now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+      return if @drawn_at && now - @drawn_at < REDRAW_INTERVAL
+
+      @drawn_at = now
+      elapsed = now - @started
+      rate = elapsed.zero? ? 0 : bytes / elapsed
+      tick = SPINNER[@frame = (@frame + 1) % SPINNER.size]
+
+      $stdout.print "\r  #{pastel.cyan(tick)}  Dumping #{pastel.bold(human(bytes))} " \
+        "#{pastel.dim("· #{human(rate)}/s · #{elapsed.round}s")}\e[K"
+    end
+
+    def clear_line
+      $stdout.print "\r\e[K" if $stdout.tty?
+    end
+
+    def store_line(store_result)
+      if store_result.success
+        "#{pastel.green("✓")} #{pastel.bold(store_result.store.to_s.ljust(6))} " \
+          "#{human(store_result.bytes)} in #{store_result.duration.round(1)}s  #{pastel.dim("→ /#{store_result.key}")}"
+      else
+        "#{pastel.red("✗")} #{pastel.bold(store_result.store.to_s.ljust(6))} #{pastel.red(store_result.error.message)}"
+      end
+    end
+
+    def verdict(result)
+      case result.status
+      when :success then pastel.green.bold("Backed up to #{result.store_results.size} store(s).")
+      when :partial_success then pastel.yellow.bold("Partial: #{result.store_results.count(&:success)}/#{result.store_results.size} stores succeeded.")
+      else pastel.red.bold("Backup failed. #{result.error&.message}")
+      end
+    end
+
+    def human(bytes)
+      BoringBackup.utils.human_size(bytes)
+    end
 
     def preflight
       check "Rails app", rails? && "config/environment.rb"
@@ -86,18 +156,21 @@ module BoringBackup
       @database = spinner("Reading database config") do
         BoringBackup.prepare!
         BoringBackup.config.pg_env["PGDATABASE"]
+      rescue
+        nil
       end
     end
 
     def spinner(message)
+      return yield unless $stdout.tty?
+
       spinner = TTY::Spinner.new("  #{pastel.dim(message)} :spinner", format: :dots, clear: true, output: $stdout)
       spinner.auto_spin
 
       yield
-    rescue
-      nil
     ensure
-      spinner.stop
+      spinner&.stop
+      clear_line
     end
 
     def env_store?

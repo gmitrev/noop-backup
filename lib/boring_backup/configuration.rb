@@ -47,6 +47,10 @@ module BoringBackup
       [*@notifiers, sentinel].compact
     end
 
+    def silence_stdout!
+      @notifiers.reject! { |notifier| notifier.is_a?(BoringBackup::Notifiers::Stdout) }
+    end
+
     def ignore_tables
       Array(@ignore_tables).map { |table| table.to_s.strip }.reject(&:empty?).uniq
     end

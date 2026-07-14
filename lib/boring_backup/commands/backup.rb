@@ -26,16 +26,17 @@ module BoringBackup::Commands
   end
 
   class Backup
-    def self.execute(report: BoringBackup.config.report?)
-      result = new.execute
+    def self.execute(report: BoringBackup.config.report?, progress: nil)
+      result = new(progress: progress).execute
 
       result.report if report
 
       result
     end
 
-    def initialize
+    def initialize(progress: nil)
       @key = generate_key
+      @progress = progress
       @store_results = []
       @sinks = []
     end
@@ -45,8 +46,8 @@ module BoringBackup::Commands
 
       commands = [config.dump_command]
 
-      # Pipe pg_dump through pv if installed for a basic progress report
-      commands << ["pv", "-btra"] if config.report? && system("which", "pv", out: File::NULL, err: File::NULL)
+      # Pipe pg_dump through pv only when the caller isn't counting bytes itself
+      commands << ["pv", "-btra"] if @progress.nil? && config.report? && system("which", "pv", out: File::NULL, err: File::NULL)
 
       Open3.pipeline_r(*commands) do |last_stdout, wait_threads|
         @sinks = config.stores.map do |store|
@@ -64,7 +65,7 @@ module BoringBackup::Commands
           BoringBackup::Tee::Sink.new(store:, writer:, thread:)
         end
 
-        sinks_fanout = BoringBackup::Tee.new(@sinks)
+        sinks_fanout = BoringBackup::Tee.new(@sinks, progress: @progress)
 
         begin
           IO.copy_stream(last_stdout, sinks_fanout)

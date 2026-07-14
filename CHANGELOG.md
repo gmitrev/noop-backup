@@ -2,6 +2,10 @@
 
 - **`aws-sdk-s3` is no longer a dependency of the gem.** apps using the `:s3` store must add `gem
 "aws-sdk-s3"` to their own `Gemfile`.
+- New `bb install` command - wires up the initializer, the Solid Queue schedule and a `bin/bb` binstub
+- `bb backup` now shows a boot spinner, a live progress meter and a coloured summary
+- `config.register(:s3)` no longer requires a block - the store configures itself from the environment
+- `Commands::Backup.execute` accepts a `progress:` callback with the running byte count
 
 ## [0.4.0] - 2026-07-13
 
