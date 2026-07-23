@@ -18,7 +18,7 @@ module BoringBackup::Stores
       snow
     ].freeze
 
-    attr_accessor :bucket, :region, :access_key_id, :secret_access_key, :part_size, :thread_count
+    attr_accessor :bucket, :region, :access_key_id, :secret_access_key, :part_size, :thread_count, :endpoint
     attr_writer :storage_class
 
     def initialize
@@ -36,10 +36,10 @@ module BoringBackup::Stores
       value.empty? ? nil : value.to_sym
     end
 
-    def name = "s3"
+    def name = :s3
 
     def description
-      [bucket.to_s.empty? ? "no bucket" : "s3://#{bucket}", region].compact.join(" ")
+      [bucket.to_s.empty? ? "no bucket" : "#{name}://#{bucket}", region].compact.join(" ")
     end
 
     # Prefer Aws::S3::TransferManager for streaming uploads if available.
@@ -72,13 +72,13 @@ module BoringBackup::Stores
         raise BoringBackup::DumpTooSmallError, "backup too small: #{BoringBackup.utils.human_size(bytes)} < min_size (#{BoringBackup.utils.human_size(config.min_size)})"
       end
 
-      Result.new(success: true, store: :s3, bytes:, key:, duration:)
+      Result.new(success: true, store: name, bytes:, key:, duration:)
     rescue => e
       duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
 
       cleanup!(key) if upload_attempted
 
-      Result.new(success: false, error: e, store: :s3, bytes:, key:, duration:)
+      Result.new(success: false, error: e, store: name, bytes:, key:, duration:)
     end
 
     def validate!
@@ -115,9 +115,10 @@ module BoringBackup::Stores
 
     def s3_config
       {
-        region: region,
-        access_key_id: access_key_id,
-        secret_access_key: secret_access_key
+        endpoint:,
+        region:,
+        access_key_id:,
+        secret_access_key:
       }.compact
     end
   end

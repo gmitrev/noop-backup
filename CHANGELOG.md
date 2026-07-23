@@ -1,7 +1,8 @@
 ## [Unreleased]
 
-- `bb doctor` - improved scheduler checks (now supports `sidekiq-crosidekiq-cronn`)
+- `bb doctor` - improved scheduler checks (now supports `sidekiq-crosidekiq-cron`)
 - support `PG*` env vars
+- support for Cloudflare R2 using their S3-compatible API
 
 ## [0.5.0] - 2026-07-14
 

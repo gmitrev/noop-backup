@@ -21,10 +21,16 @@ gem install boring-backup
 The gem requires `pg_dump` to be installed on the machine that is running it.
 
 Storage backends bring their own dependencies, which are not installed by default. To use
-the `:s3` store, add the AWS SDK to your `Gemfile` as well:
+the `:s3` and `:r2` stores, add the AWS SDK to your `Gemfile` as well:
 
 ```bash
 bundle add aws-sdk-s3
+```
+
+Run the install command to set up the initializer:
+
+```bash
+bundle exec bb install
 ```
 
 ## Usage
@@ -69,11 +75,20 @@ All configuration options can be edited in the initializer:
 # config/initializers/boring-backup.rb
 
 BoringBackup.configure do |config|
+  config.sentinel_key = '12345678-abcd-1234-abcd-abcdef123456'
+
   config.register(:s3) do |store|
     store.bucket = Settings.aws.bucket
     store.region = Settings.aws.region
     store.access_key_id = Settings.aws.access_key_id
     store.secret_access_key = Settings.aws.secret_access_key
+  end
+
+  config.register(:r2) do |store|
+    store.endpoint = Settings.r2.endpoint
+    store.bucket = Settings.r2.bucket
+    store.access_key_id = Settings.r2.access_key_id
+    store.secret_access_key = Settings.r2.secret_access_key
   end
 
   config.notifier :slack do |slack|
@@ -108,12 +123,10 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/gmitre
 
 ## Wishlist
 
-- [ ] S3-compatible backends
+- [X] S3-compatible backends
+- [X] doctor command
 - [ ] file backend
-- [ ] email notifier
-- [ ] SMS notifier
 - [ ] restore command
-- [ ] test command
 - [ ] encryption
 - [ ] delete stale
 

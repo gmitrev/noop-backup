@@ -140,7 +140,7 @@ module BoringBackup
     def check_line(check, width)
       mark, colour = CHECK_MARKS.fetch(check.status)
 
-      "#{pastel.decorate(mark, colour)} #{pastel.bold(check.name.ljust(width))}  #{pastel.dim(check.detail.to_s)}"
+      "#{pastel.decorate(mark, colour)} #{pastel.bold(check.name.to_s.ljust(width))}  #{pastel.dim(check.detail.to_s)}"
     end
 
     def doctor_verdict(result)

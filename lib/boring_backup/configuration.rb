@@ -69,6 +69,7 @@ module BoringBackup
       store =
         case store_type.to_sym
         when :s3 then build_s3_store
+        when :r2 then build_r2_store
         else raise BoringBackup::ConfigurationError, "unknown store type: #{store_type}"
         end
 
@@ -98,6 +99,15 @@ module BoringBackup
     rescue LoadError
       raise BoringBackup::ConfigurationError,
         "the :s3 store needs the aws-sdk-s3 gem. Add `gem \"aws-sdk-s3\"` to your Gemfile."
+    end
+
+    def build_r2_store
+      require_relative "stores/r2"
+
+      BoringBackup::Stores::R2.new
+    rescue LoadError
+      raise BoringBackup::ConfigurationError,
+        "the :r2 store needs the aws-sdk-s3 gem. Add `gem \"aws-sdk-s3\"` to your Gemfile."
     end
 
     def pg_env

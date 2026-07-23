@@ -1,7 +1,7 @@
 module BoringBackup::Stores
   class Store
     def name
-      self.class.name.split("::").last.downcase
+      self.class.name.split("::").last.downcase.to_sym
     end
 
     def description
